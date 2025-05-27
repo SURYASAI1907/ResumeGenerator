@@ -1,0 +1,724 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Resume Generator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+  />
+  <style>
+    /* ATS-friendly font and spacing */
+    #previewSection {
+      font-family: 'Arial', sans-serif;
+      line-height: 1.4;
+      color: #1e293b; /* slate-800 */
+      background: white;
+      padding: 1rem;
+      max-width: 595pt; /* A4 width in points */
+      box-sizing: border-box;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+    #previewSection h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      border-bottom: 2px solid #2563eb; /* blue-600 */
+      padding-bottom: 0.25rem;
+      word-break: break-word;
+    }
+    #previewSection h2 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-top: 2rem;
+      margin-bottom: 0.75rem;
+      border-bottom: 1px solid #94a3b8; /* slate-400 */
+      padding-bottom: 0.15rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      word-break: break-word;
+    }
+    #previewSection p, #previewSection ul, #previewSection ol, #previewSection div[contenteditable] {
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+      word-break: break-word;
+    }
+    #previewSection ul {
+      padding-left: 1.25rem;
+      list-style-type: disc;
+    }
+    #previewSection ol {
+      padding-left: 1.25rem;
+      list-style-type: decimal;
+    }
+    #previewSection a {
+      color: #2563eb;
+      text-decoration: none;
+      word-break: break-word;
+    }
+    #previewSection a:hover {
+      text-decoration: underline;
+    }
+
+    /* Modal styles */
+    #pdfModal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0; top: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.6);
+      justify-content: center;
+      align-items: center;
+      overflow: auto;
+      padding: 1rem;
+    }
+    #pdfModalContent {
+      background: white;
+      width: 90vw;
+      max-width: 1100px; /* slightly less than resume generator max width */
+      height: 85vh; /* slightly less than full viewport height */
+      border-radius: 0.5rem;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+    }
+    #pdfModalHeader {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #pdfModalHeader h3 {
+      margin: 0;
+      font-weight: 600;
+      font-size: 1.25rem;
+      color: #1e293b;
+    }
+    #pdfModalClose {
+      cursor: pointer;
+      font-size: 1.5rem;
+      color: #475569;
+      border: none;
+      background: none;
+    }
+    #pdfIframe {
+      flex: 1;
+      border: none;
+      width: 100%;
+      height: 100%;
+      border-radius: 0 0 0.5rem 0.5rem;
+    }
+
+    /* Toolbar styles */
+    .toolbar {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.25rem;
+    }
+    .toolbar button {
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+      border-radius: 0.375rem;
+      padding: 0.25rem 0.5rem;
+      cursor: pointer;
+      color: #374151;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.2s;
+    }
+    .toolbar button:hover {
+      background: #e5e7eb;
+    }
+    .toolbar button:focus {
+      outline: 2px solid #2563eb;
+      outline-offset: 2px;
+    }
+    .toolbar button i {
+      pointer-events: none;
+    }
+    .editable {
+      width: 100%;
+      min-height: 96px;
+      border: 1px solid #d1d5db;
+      border-radius: 0.375rem;
+      padding: 0.5rem;
+      font-family: inherit;
+      font-size: 0.95rem;
+      color: #1e293b;
+      overflow-y: auto;
+      outline: none;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+  </style>
+</head>
+<body class="bg-gray-100">
+  <div class="max-w-7xl mx-auto p-8 bg-white rounded-xl shadow-lg mt-8">
+    <div class="flex flex-col md:flex-row gap-8">
+      <form id="resumeForm" class="flex-1 max-w-lg space-y-6" onsubmit="return false;">
+        <h2 class="text-xl font-semibold text-slate-800">Resume Generator</h2>
+
+        <div>
+          <label for="name" class="block mb-1 text-slate-700 font-medium">Name:</label>
+          <input
+            id="name"
+            name="name"
+            type="text"
+            class="w-full rounded-md border border-gray-300 px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label for="email" class="block mb-1 text-slate-700 font-medium">Email:</label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            class="w-full rounded-md border border-gray-300 px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label for="phone" class="block mb-1 text-slate-700 font-medium">Phone:</label>
+          <input
+            id="phone"
+            name="phone"
+            type="tel"
+            class="w-full rounded-md border border-gray-300 px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label for="linkedin" class="block mb-1 text-slate-700 font-medium">LinkedIn:</label>
+          <input
+            id="linkedin"
+            name="linkedin"
+            type="text"
+            class="w-full rounded-md border border-gray-300 px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label for="github" class="block mb-1 text-slate-700 font-medium">GitHub:</label>
+          <input
+            id="github"
+            name="github"
+            type="text"
+            class="w-full rounded-md border border-gray-300 px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <!-- Summary with toolbar and editable div -->
+        <div>
+          <label for="summary" class="block mb-1 text-slate-700 font-medium">Summary:</label>
+          <div id="summaryToolbar" class="toolbar" aria-label="Summary text formatting toolbar" role="toolbar">
+            <button type="button" title="Bold" aria-label="Bold" onclick="execCmd('summaryEditor', 'bold')"><i class="fas fa-bold"></i></button>
+            <button type="button" title="Italic" aria-label="Italic" onclick="execCmd('summaryEditor', 'italic')"><i class="fas fa-italic"></i></button>
+            <button type="button" title="Underline" aria-label="Underline" onclick="execCmd('summaryEditor', 'underline')"><i class="fas fa-underline"></i></button>
+            <button type="button" title="Bullet List" aria-label="Bullet List" onclick="execCmd('summaryEditor', 'insertUnorderedList')"><i class="fas fa-list-ul"></i></button>
+            <button type="button" title="Numbered List" aria-label="Numbered List" onclick="execCmd('summaryEditor', 'insertOrderedList')"><i class="fas fa-list-ol"></i></button>
+          </div>
+          <div id="summaryEditor" class="editable" contenteditable="true" role="textbox" aria-multiline="true" spellcheck="true"></div>
+          <textarea id="summary" name="summary" class="hidden"></textarea>
+        </div>
+
+        <!-- Technical Skills with toolbar and editable div -->
+        <div>
+          <label for="technicalSkills" class="block mb-1 text-slate-700 font-medium">Technical Skills:</label>
+          <div id="technicalSkillsToolbar" class="toolbar" aria-label="Technical Skills text formatting toolbar" role="toolbar">
+            <button type="button" title="Bold" aria-label="Bold" onclick="execCmd('technicalSkillsEditor', 'bold')"><i class="fas fa-bold"></i></button>
+            <button type="button" title="Italic" aria-label="Italic" onclick="execCmd('technicalSkillsEditor', 'italic')"><i class="fas fa-italic"></i></button>
+            <button type="button" title="Underline" aria-label="Underline" onclick="execCmd('technicalSkillsEditor', 'underline')"><i class="fas fa-underline"></i></button>
+            <button type="button" title="Bullet List" aria-label="Bullet List" onclick="execCmd('technicalSkillsEditor', 'insertUnorderedList')"><i class="fas fa-list-ul"></i></button>
+            <button type="button" title="Numbered List" aria-label="Numbered List" onclick="execCmd('technicalSkillsEditor', 'insertOrderedList')"><i class="fas fa-list-ol"></i></button>
+          </div>
+          <div id="technicalSkillsEditor" class="editable" contenteditable="true" role="textbox" aria-multiline="true" spellcheck="true"></div>
+          <textarea id="technicalSkills" name="technicalSkills" class="hidden"></textarea>
+        </div>
+
+        <!-- Experience with toolbar and editable div -->
+        <div>
+          <label for="experience" class="block mb-1 text-slate-700 font-medium">Experience:</label>
+          <div id="experienceToolbar" class="toolbar" aria-label="Experience text formatting toolbar" role="toolbar">
+            <button type="button" title="Bold" aria-label="Bold" onclick="execCmd('experienceEditor', 'bold')"><i class="fas fa-bold"></i></button>
+            <button type="button" title="Italic" aria-label="Italic" onclick="execCmd('experienceEditor', 'italic')"><i class="fas fa-italic"></i></button>
+            <button type="button" title="Underline" aria-label="Underline" onclick="execCmd('experienceEditor', 'underline')"><i class="fas fa-underline"></i></button>
+            <button type="button" title="Bullet List" aria-label="Bullet List" onclick="execCmd('experienceEditor', 'insertUnorderedList')"><i class="fas fa-list-ul"></i></button>
+            <button type="button" title="Numbered List" aria-label="Numbered List" onclick="execCmd('experienceEditor', 'insertOrderedList')"><i class="fas fa-list-ol"></i></button>
+          </div>
+          <div id="experienceEditor" class="editable" contenteditable="true" role="textbox" aria-multiline="true" spellcheck="true"></div>
+          <textarea id="experience" name="experience" class="hidden"></textarea>
+        </div>
+
+        <!-- Projects with toolbar and editable div -->
+        <div>
+          <label for="projects" class="block mb-1 text-slate-700 font-medium">Projects:</label>
+          <div id="projectsToolbar" class="toolbar" aria-label="Projects text formatting toolbar" role="toolbar">
+            <button type="button" title="Bold" aria-label="Bold" onclick="execCmd('projectsEditor', 'bold')"><i class="fas fa-bold"></i></button>
+            <button type="button" title="Italic" aria-label="Italic" onclick="execCmd('projectsEditor', 'italic')"><i class="fas fa-italic"></i></button>
+            <button type="button" title="Underline" aria-label="Underline" onclick="execCmd('projectsEditor', 'underline')"><i class="fas fa-underline"></i></button>
+            <button type="button" title="Bullet List" aria-label="Bullet List" onclick="execCmd('projectsEditor', 'insertUnorderedList')"><i class="fas fa-list-ul"></i></button>
+            <button type="button" title="Numbered List" aria-label="Numbered List" onclick="execCmd('projectsEditor', 'insertOrderedList')"><i class="fas fa-list-ol"></i></button>
+          </div>
+          <div id="projectsEditor" class="editable" contenteditable="true" role="textbox" aria-multiline="true" spellcheck="true"></div>
+          <textarea id="projects" name="projects" class="hidden"></textarea>
+        </div>
+
+        <div>
+          <label for="education" class="block mb-1 text-slate-700 font-medium">Education:</label>
+          <div id="educationToolbar" class="toolbar" aria-label="Education text formatting toolbar" role="toolbar">
+            <button type="button" title="Bold" aria-label="Bold" onclick="execCmd('educationEditor', 'bold')"><i class="fas fa-bold"></i></button>
+            <button type="button" title="Italic" aria-label="Italic" onclick="execCmd('educationEditor', 'italic')"><i class="fas fa-italic"></i></button>
+            <button type="button" title="Underline" aria-label="Underline" onclick="execCmd('educationEditor', 'underline')"><i class="fas fa-underline"></i></button>
+            <button type="button" title="Bullet List" aria-label="Bullet List" onclick="execCmd('educationEditor', 'insertUnorderedList')"><i class="fas fa-list-ul"></i></button>
+            <button type="button" title="Numbered List" aria-label="Numbered List" onclick="execCmd('educationEditor', 'insertOrderedList')"><i class="fas fa-list-ol"></i></button>
+          </div>
+          <div id="educationEditor" class="editable" contenteditable="true" role="textbox" aria-multiline="true" spellcheck="true"></div>
+          <textarea id="education" name="education" class="hidden"></textarea>
+        </div>
+
+        <div>
+          <label for="certifications" class="block mb-1 text-slate-700 font-medium">Certifications:</label>
+          <div id="certificationsToolbar" class="toolbar" aria-label="Certifications text formatting toolbar" role="toolbar">
+            <button type="button" title="Bold" aria-label="Bold" onclick="execCmd('certificationsEditor', 'bold')"><i class="fas fa-bold"></i></button>
+            <button type="button" title="Italic" aria-label="Italic" onclick="execCmd('certificationsEditor', 'italic')"><i class="fas fa-italic"></i></button>
+            <button type="button" title="Underline" aria-label="Underline" onclick="execCmd('certificationsEditor', 'underline')"><i class="fas fa-underline"></i></button>
+            <button type="button" title="Bullet List" aria-label="Bullet List" onclick="execCmd('certificationsEditor', 'insertUnorderedList')"><i class="fas fa-list-ul"></i></button>
+            <button type="button" title="Numbered List" aria-label="Numbered List" onclick="execCmd('certificationsEditor', 'insertOrderedList')"><i class="fas fa-list-ol"></i></button>
+          </div>
+          <div id="certificationsEditor" class="editable" contenteditable="true" role="textbox" aria-multiline="true" spellcheck="true"></div>
+          <textarea id="certifications" name="certifications" class="hidden"></textarea>
+        </div>
+
+        <div class="flex gap-4">
+          <button
+            id="previewPdfBtn"
+            type="button"
+            class="flex-1 bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700 transition"
+          >
+            PDF Preview
+          </button>
+          <button
+            id="downloadBtn"
+            type="button"
+            class="flex-1 bg-gray-300 text-slate-900 font-semibold py-2 rounded-md hover:bg-gray-400 transition"
+          >
+            Download as PDF
+          </button>
+        </div>
+      </form>
+
+      <div
+        id="previewSection"
+        class="flex-1 border border-gray-200 rounded-md p-6 text-slate-900 max-w-lg min-h-[600px]"
+      >
+        <!-- Name will appear here as h1 -->
+        <h1 id="previewName" class="mb-1"></h1>
+        <p class="mb-1" id="previewEmail" style="font-weight:600; font-size:0.95rem; color:#475569;">
+          Email:
+        </p>
+        <p class="mb-1" id="previewPhone" style="font-weight:600; font-size:0.95rem; color:#475569;">
+          Phone:
+        </p>
+        <p class="mb-1" id="previewLinkedIn" style="font-weight:600; font-size:0.95rem; color:#475569;">
+          LinkedIn:
+        </p>
+        <p class="mb-6" id="previewGitHub" style="font-weight:600; font-size:0.95rem; color:#475569;">
+          GitHub:
+        </p>
+
+        <h2 id="previewSummaryTitle">Professional Summary</h2>
+        <div id="previewSummary" class="whitespace-pre-line"></div>
+
+        <h2 id="previewSkillsTitle">Technical Skills</h2>
+        <div id="previewTechnicalSkills" class="whitespace-pre-line"></div>
+
+        <h2 id="previewExperienceTitle">Experience</h2>
+        <div id="previewExperience" class="whitespace-pre-line"></div>
+
+        <h2 id="previewProjectsTitle">Projects</h2>
+        <div id="previewProjects" class="whitespace-pre-line"></div>
+
+        <h2 id="previewEducationTitle">Education</h2>
+        <div id="previewEducation" class="whitespace-pre-line"></div>
+
+        <h2 id="previewCertificationsTitle">Certifications</h2>
+        <div id="previewCertifications" class="whitespace-pre-line"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PDF Preview Modal -->
+  <div id="pdfModal" class="flex" role="dialog" aria-modal="true" aria-labelledby="pdfModalTitle">
+    <div id="pdfModalContent">
+      <div id="pdfModalHeader">
+        <h3 id="pdfModalTitle">PDF Preview</h3>
+        <button id="pdfModalClose" aria-label="Close PDF Preview">&times;</button>
+      </div>
+      <iframe id="pdfIframe" title="PDF Preview"></iframe>
+    </div>
+  </div>
+
+  <script>
+    // Execute formatting commands for editors
+    function execCmd(editorId, command) {
+      const editor = document.getElementById(editorId);
+      editor.focus();
+      document.execCommand(command, false, null);
+      updateTextarea(editorId);
+    }
+
+    // Sync contenteditable content to hidden textarea and update preview
+    function updateTextarea(editorId) {
+      const editor = document.getElementById(editorId);
+      const textarea = document.getElementById(editorId.replace('Editor', ''));
+      textarea.value = editor.innerHTML;
+      updatePreview(editorId);
+    }
+
+    // Update preview for rich text editors
+    function updatePreview(editorId) {
+      const previewId = 'preview' + editorId.charAt(0).toUpperCase() + editorId.slice(1).replace('Editor', '');
+      const previewEl = document.getElementById(previewId);
+      const editor = document.getElementById(editorId);
+      if (previewEl) {
+        previewEl.innerHTML = editor.innerHTML || '';
+      }
+    }
+
+    // Initialize editors and sync on input
+    const richTextFields = ['summary', 'technicalSkills', 'experience', 'projects', 'education', 'certifications'];
+    richTextFields.forEach(field => {
+      const editor = document.getElementById(field + 'Editor');
+      const textarea = document.getElementById(field);
+      editor.addEventListener('input', () => {
+        textarea.value = editor.innerHTML;
+        updatePreview(field + 'Editor');
+      });
+      // Initialize preview empty
+      updatePreview(field + 'Editor');
+    });
+
+    // Update preview for simple text inputs (email, phone, linkedin, github, name)
+    const simpleFields = [
+      {inputId: 'name', previewId: 'previewName', isHtml: false},
+      {inputId: 'email', previewId: 'previewEmail', prefix: 'Email:', isHtml: false},
+      {inputId: 'phone', previewId: 'previewPhone', prefix: 'Phone:', isHtml: false},
+      {inputId: 'linkedin', previewId: 'previewLinkedIn', prefix: 'LinkedIn:', isHtml: false},
+      {inputId: 'github', previewId: 'previewGitHub', prefix: 'GitHub:', isHtml: false},
+    ];
+
+    simpleFields.forEach(({inputId, previewId, prefix = '', isHtml}) => {
+      const inputEl = document.getElementById(inputId);
+      const previewEl = document.getElementById(previewId);
+
+      inputEl.addEventListener('input', () => {
+        const val = inputEl.value.trim();
+        if (!val) {
+          previewEl.textContent = prefix ? prefix : '';
+          return;
+        }
+        previewEl.textContent = prefix ? `${prefix} ${val}` : val;
+      });
+    });
+
+    // PDF generation and preview
+    const previewPdfBtn = document.getElementById('previewPdfBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const pdfModal = document.getElementById('pdfModal');
+    const pdfModalClose = document.getElementById('pdfModalClose');
+    const pdfIframe = document.getElementById('pdfIframe');
+
+    previewPdfBtn.addEventListener('click', async () => {
+      if (!window.jspdf) {
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+      }
+      generatePDFPreview();
+    });
+
+    downloadBtn.addEventListener('click', async () => {
+      if (!window.jspdf) {
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+      }
+      generatePDFDownload();
+    });
+
+    async function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    }
+
+    function createPDFDoc() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({
+        unit: 'pt',
+        format: 'letter',
+        compress: true,
+      });
+
+      const marginLeft = 40;
+      const marginRight = 40;
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const maxTextWidth = pageWidth - marginLeft - marginRight;
+      let cursorY = 40;
+
+      function addText(text, options = {}) {
+        const fontSize = options.fontSize || 12;
+        const fontStyle = options.fontStyle || 'normal';
+        doc.setFontSize(fontSize);
+        doc.setFont('helvetica', fontStyle);
+        const splitText = doc.splitTextToSize(text, maxTextWidth);
+        doc.text(splitText, marginLeft, cursorY);
+        cursorY += splitText.length * fontSize * 1.2;
+      }
+
+      // Add Name (h1)
+      const name = document.getElementById('previewName').textContent.trim();
+      if (name) {
+        doc.setFontSize(20);
+        doc.setFont('helvetica', 'bold');
+        doc.text(name, marginLeft, cursorY);
+        cursorY += 28;
+        doc.setDrawColor(37, 99, 235);
+        doc.setLineWidth(1.5);
+        doc.line(marginLeft, cursorY - 10, pageWidth - marginRight, cursorY - 10);
+        cursorY += 10;
+      }
+
+      // Add contact info
+      const email = document.getElementById('previewEmail').textContent.replace('Email:', '').trim();
+      const phone = document.getElementById('previewPhone').textContent.replace('Phone:', '').trim();
+      if (email || phone) {
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal');
+        let contactLine = '';
+        if (email) contactLine += `Email: ${email}`;
+        if (email && phone) contactLine += ' | ';
+        if (phone) contactLine += `Phone: ${phone}`;
+        addText(contactLine);
+      }
+
+      // Add LinkedIn and GitHub
+      const linkedin = document.getElementById('previewLinkedIn').textContent.replace('LinkedIn:', '').trim();
+      const github = document.getElementById('previewGitHub').textContent.replace('GitHub:', '').trim();
+      if (linkedin || github) {
+        let linksLine = '';
+        if (linkedin) linksLine += `LinkedIn: ${linkedin}`;
+        if (linkedin && github) linksLine += ' | ';
+        if (github) linksLine += `GitHub: ${github}`;
+        addText(linksLine);
+      }
+
+      cursorY += 20;
+
+      // Helper to add section with heading and content (supports HTML for rich text)
+      function addSection(title, contentId, isHtml = false) {
+        const contentEl = document.getElementById(contentId);
+        if (!contentEl) return;
+        let text = contentEl.textContent.trim();
+        if (!text) return;
+
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.setDrawColor(148, 163, 184);
+        doc.setLineWidth(0.5);
+        doc.text(title.toUpperCase(), marginLeft, cursorY);
+        cursorY += 6;
+        doc.line(marginLeft, cursorY, pageWidth - marginRight, cursorY);
+        cursorY += 20;
+
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal');
+
+        if (isHtml) {
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = contentEl.innerHTML;
+          cursorY = renderHtmlToPdf(doc, tempDiv, marginLeft, cursorY, maxTextWidth, pageWidth, marginRight)+20;
+        } else {
+          const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+          lines.forEach(line => {
+            if (line.startsWith('-') || line.startsWith('*')) {
+              const bulletText = '• ' + line.replace(/^[-*]\s*/, '');
+              const splitText = doc.splitTextToSize(bulletText, maxTextWidth - 10);
+              doc.text(splitText, marginLeft + 10, cursorY);
+              cursorY += splitText.length * 11 * 1.2;
+            } else {
+              const splitText = doc.splitTextToSize(line, maxTextWidth);
+              doc.text(splitText, marginLeft, cursorY);
+              cursorY += splitText.length * 11 * 1.2;
+            }
+            if (cursorY > doc.internal.pageSize.getHeight() - 40) {
+              doc.addPage();
+              cursorY = 40;
+            }
+          });
+          cursorY += 20;
+        }
+        return cursorY;
+      }
+
+      // Recursive function to render basic HTML tags to jsPDF with bold and italic support fixed
+      function renderHtmlToPdf(doc, element, x, y, maxWidth, pageWidth, marginRight) {
+        const lineHeight = 14;
+        const fontSize = 11;
+        let cursorY = y;
+
+        function renderNode(node, xPos, yPos, fontStyle = 'normal') {
+          if (cursorY > doc.internal.pageSize.getHeight() - 40) {
+            doc.addPage();
+            cursorY = 40;
+          }
+          if (node.nodeType === Node.TEXT_NODE) {
+            const text = node.textContent.replace(/\s+/g, ' ');
+            if (text.trim() === '') return yPos;
+            doc.setFontSize(fontSize);
+            doc.setFont('helvetica', fontStyle);
+            const splitText = doc.splitTextToSize(text, maxWidth - (xPos - x));
+            doc.text(splitText, xPos, cursorY);
+            cursorY += splitText.length * fontSize * 1.2;
+            return cursorY;
+          } else if (node.nodeType === Node.ELEMENT_NODE) {
+            let newFontStyle = fontStyle;
+            switch (node.tagName.toLowerCase()) {
+              case 'b':
+              case 'strong':
+                newFontStyle = 'bold';
+                break;
+              case 'i':
+              case 'em':
+                if (fontStyle === 'bold') {
+                  newFontStyle = 'bolditalic';
+                } else {
+                  newFontStyle = 'italic';
+                }
+                break;
+              case 'u':
+                newFontStyle = fontStyle;
+                break;
+              case 'br':
+                cursorY += lineHeight;
+                return cursorY;
+              case 'ul':
+                for (const li of node.children) {
+                  if (li.tagName.toLowerCase() === 'li') {
+                    cursorY = renderNode(li, xPos + 10, cursorY, newFontStyle);
+                  }
+                }
+                return cursorY;
+              case 'ol':
+                let num = 1;
+                for (const li of node.children) {
+                  if (li.tagName.toLowerCase() === 'li') {
+                    const prefix = `${num}. `;
+                    doc.setFontSize(fontSize);
+                    doc.setFont('helvetica', newFontStyle);
+                    const liText = prefix + li.textContent.trim();
+                    const splitText = doc.splitTextToSize(liText, maxWidth - (xPos - x));
+                    if (cursorY > doc.internal.pageSize.getHeight() - 40) {
+                      doc.addPage();
+                      cursorY = 40;
+                    }
+                    doc.text(splitText, xPos, cursorY);
+                    cursorY += splitText.length * fontSize * 1.2;
+                    num++;
+                  }
+                }
+                return cursorY;
+              case 'li':
+                const bullet = '• ';
+                doc.setFontSize(fontSize);
+                doc.setFont('helvetica', newFontStyle);
+                const liText = bullet + node.textContent.trim();
+                const splitText = doc.splitTextToSize(liText, maxWidth - (xPos - x));
+                if (cursorY > doc.internal.pageSize.getHeight() - 40) {
+                  doc.addPage();
+                  cursorY = 40;
+                }
+                doc.text(splitText, xPos, cursorY);
+                cursorY += splitText.length * fontSize * 1.2;
+                return cursorY;
+              default:
+                for (const child of node.childNodes) {
+                  cursorY = renderNode(child, xPos, cursorY, newFontStyle);
+                }
+                return cursorY;
+            }
+            if (node.tagName.toLowerCase() === 'u') {
+              for (const child of node.childNodes) {
+                cursorY = renderNode(child, xPos, cursorY, newFontStyle);
+              }
+              const underlineY = cursorY - lineHeight * 0.6;
+              const textWidth = doc.getTextWidth(node.textContent.trim());
+              doc.setDrawColor(0, 0, 0);
+              doc.setLineWidth(0.5);
+              doc.line(xPos, underlineY, xPos + textWidth, underlineY);
+              return cursorY;
+            }
+          }
+          return cursorY;
+        }
+
+        for (const child of element.childNodes) {
+          cursorY = renderNode(child, x, cursorY, 'normal');
+        }
+        return cursorY;
+      }
+
+      addSection('Professional Summary', 'previewSummary', true);
+      addSection('Technical Skills', 'previewTechnicalSkills', true);
+      addSection('Experience', 'previewExperience', true);
+      addSection('Projects', 'previewProjects', true);
+      addSection('Education', 'previewEducation', true);
+      addSection('Certifications', 'previewCertifications', true);
+
+      return doc;
+    }
+
+    async function generatePDFPreview() {
+      const doc = createPDFDoc();
+      const pdfBlob = doc.output('blob');
+      const url = URL.createObjectURL(pdfBlob);
+      pdfIframe.src = url;
+      pdfModal.style.display = 'flex';
+    }
+
+    async function generatePDFDownload() {
+      const doc = createPDFDoc();
+      doc.save('resume.pdf');
+    }
+
+    pdfModalClose.addEventListener('click', () => {
+      pdfModal.style.display = 'none';
+      if (pdfIframe.src) {
+        URL.revokeObjectURL(pdfIframe.src);
+        pdfIframe.src = '';
+      }
+    });
+
+    // Close modal on outside click
+    pdfModal.addEventListener('click', (e) => {
+      if (e.target === pdfModal) {
+        pdfModalClose.click();
+      }
+    });
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && pdfModal.style.display === 'flex') {
+        pdfModalClose.click();
+      }
+    });
+  </script>
+</body>
+</html>
